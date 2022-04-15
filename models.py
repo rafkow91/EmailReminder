@@ -10,12 +10,8 @@ class User:
     def _is_valid_email(self):
         has_at = True if '@' in self.email else False
         has_dot_in_domain = True if '.' in self.email[-4:-2] else False
-        
-        return all([has_at, has_dot_in_domain])
 
-    def add_to_database(self):
-        Data = namedtuple('Data', ['name', 'email'])
-        return Data(self.name, self.email)
+        return all([has_at, has_dot_in_domain])
 
 
 class Book:
@@ -23,17 +19,12 @@ class Book:
         self.title = title
         self.author = author
 
-    def add_to_database(self):
-        pass
 
 class Hiring:
-    def __init__(self, user: User, book: Book, return_at: datetime) -> None:
-        self.user = user
-        self.book = book
+    def __init__(self, user_id: int, book_id: int, return_at: datetime) -> None:
+        self.user_id = user_id
+        self.book_id = book_id
         self.return_at = return_at
 
     def is_out_of_date(self):
         return datetime.now() > self.return_at
-
-    def add_to_database(self):
-        pass

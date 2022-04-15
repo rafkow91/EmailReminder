@@ -5,16 +5,12 @@ CREATE TABLE books (
 	created_at datetime
 );
 
-SELECT * FROM books;
-
 CREATE TABLE users (
 	id integer primary key autoincrement,
 	name text,
 	email text,
 	created_at datetime
 );
-
-SELECT * FROM users;
 
 CREATE TABLE hirings (
 	id integer primary key autoincrement,
@@ -23,5 +19,3 @@ CREATE TABLE hirings (
 	created_at datetime,
 	returned_to datetime
 );
-
-SELECT * FROM hirings h ;

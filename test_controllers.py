@@ -1,4 +1,3 @@
-from multiprocessing import connection
 import pytest
 import sqlite3
 
