@@ -110,7 +110,7 @@ class Database:
             if book_id is None:
                 self.add_book(hiring.book)
 
-            data_to_add = (user_id, book_id, datetime.now(), hiring.return_at)
+            data_to_add = (user_id, book_id, datetime.now(), hiring.returned_to)
 
             self.cursor.execute('''
                 INSERT INTO hirings (user_id, book_id, created_at, returned_to) VALUES (?, ?, ?, ?)

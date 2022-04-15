@@ -84,38 +84,70 @@ class Application:
         print('Dodaj nowe wypożyczenie\n\nWypożyczający:')
         
         username = input('Imię: ')
-        existed_users = self.database.get_users_by_name(username)
-                
-        if existed_users[username] is None:
+        existed_users = self.database.get_users_by_name(username)[username]
+        if len(existed_users) > 1:
+            data = [row[1:3] for row in existed_users]
+            print(f'Znaleziono {len(existed_books)} książek o tytule zawierającym frazę "{title}"')
+            headers = ('Tytuł', 'Autor')
+            print(tabulate(data, headers=headers, tablefmt='fancy_grid', showindex=range(1, len(data)+1)))
+            print('\n\n')
+            while True:
+                try:
+                    choice = int(input('Wybierz, którą wypożyczającego: '))
+                    if choice not in range(len(existed_users)):
+                        raise ValueError
+                except ValueError:
+                    print('!!! Wybrano złą wartość !!!')
+                    continue
+                break
+        else:
+            choice = 1
+        try:
+            email = existed_users[choice - 1][2]
+        except IndexError:
             email = input('Adres email: ')
             self.database.add_user(User(username, email))
         
-        user_id = self.database.get_users_by_name(username)[username][0]
+        user = User(username, email)
 
         print('Książka:')
         title = input('Tytuł: ')
         existed_books = self.database.get_books_by_titles(title)[title]
         data = [row[1:3] for row in existed_books]
-        print(f'Znaleziono {len(existed_books)} książek o tytule zawierającym frazę "{title}"')
-        headers = ('Tytuł', 'Autor')
-        print(tabulate(data, headers=headers, tablefmt='fancy_grid', showindex=range(1, len(data)+1)))
-        print('\n\n')
-        while True:
-            try:
-                choice = int(input('Wybierz, którą książkę chcesz wypożyczyć: '))
-                if choice not in range(len(existed_books)):
-                    raise ValueError
-            except ValueError:
-                print('!!! Wybrano złą wartość !!!')
-                continue
-            break
-        book_id = existed_books[choice - 1][0]
+        if len(data) > 1:
+            print(f'Znaleziono {len(existed_books)} książek o tytule zawierającym frazę "{title}"')
+            headers = ('Tytuł', 'Autor')
+            print(tabulate(data, headers=headers, tablefmt='fancy_grid', showindex=range(1, len(data)+1)))
+            print('\n\n')
+            while True:
+                try:
+                    choice = int(input('Wybierz, którą książkę chcesz wypożyczyć: '))
+                    if choice not in range(len(existed_books)):
+                        raise ValueError
+                except ValueError:
+                    print('!!! Wybrano złą wartość !!!')
+                    continue
+                break
+            title = existed_books[choice - 1][1]
+            author = existed_books[choice - 1][2]
+
+        else:
+            print('Nie znaleziono książki o podobnym tytule. Dodaj taką książkę:')
+            title = input('Tytuł: ')
+            author = input('Autor: ')
+
+        book = Book(title, author)
+
         print('Podaj datę zwrotu:')
         day = int(input('Dzień: '))
         month = int(input('Miesiąc (0 - 12): '))
         year = int(input('Rok: '))
         returned_to = datetime(year, month, day)
-        hiring = Hiring()
+
+        self.database.add_hiring(
+            Hiring(user, book, returned_to)
+        )
+        self.run()
 
     def run(self):
         OPTIONS = {

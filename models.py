@@ -21,10 +21,10 @@ class Book:
 
 
 class Hiring:
-    def __init__(self, user_id: int, book_id: int, return_at: datetime) -> None:
-        self.user_id = user_id
-        self.book_id = book_id
-        self.return_at = return_at
+    def __init__(self, user: User, book: Book, returned_to: datetime) -> None:
+        self.user = user
+        self.book = book
+        self.returned_to = returned_to
 
     def is_out_of_date(self):
         return datetime.now() > self.return_at
