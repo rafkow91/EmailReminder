@@ -63,26 +63,44 @@ class Application:
     def _show_hirings(self):
         system('clear')
         print('Wykaz wypożyczeń')
+
         data = self.database.get_all_hirings()
         headers = ('Tytuł', 'Autor', 'Wypożyczający', 'Data zwrotu')
         print(tabulate(data, headers=headers, tablefmt='fancy_grid', showindex=range(1, len(data)+1)))
+
         input('\n\n--- Naciśnij dowolny klawisz aby kontynuować ---\n\n')
         self.run()
 
     def _add_user(self):
         system('clear')
-        print('Wykaz wypożyczeń')
-        
+        print('Dodaj nowego wypożyczającego')
+        username = input('Imię: ')
+        email = input('Adres email: ')
+
+        existed_users = self.database.get_all_users()
+        if (username, email) not in existed_users:
+            self.database.add_user(user=User(username, email))
+
+        input('\n\n--- Naciśnij dowolny klawisz aby kontynuować ---\n\n')
+        self.run()
 
     def _add_book(self):
         system('clear')
-        print('Wykaz wypożyczeń')
-        
+        print('Dodaj nową książkę do wypożyczania')
+        title = input('Tytuł: ')
+        author = input('Autor: ')
+
+        existed_books = self.database.get_all_books()
+        if (title, author) not in existed_books:
+            self.database.add_book(book=Book(title, author))
+
+        input('\n\n--- Naciśnij dowolny klawisz aby kontynuować ---\n\n')
+        self.run()
 
     def _add_hiring(self):
         system('clear')
-        print('Dodaj nowe wypożyczenie\n\nWypożyczający:')
-        
+        print('Dodaj nowe wypożyczenie\n\n\tWypożyczający:')
+
         username = input('Imię: ')
         existed_users = self.database.get_users_by_name(username)[username]
         if len(existed_users) > 1:
@@ -107,10 +125,10 @@ class Application:
         except IndexError:
             email = input('Adres email: ')
             self.database.add_user(User(username, email))
-        
+
         user = User(username, email)
 
-        print('Książka:')
+        print('\tKsiążka:')
         title = input('Tytuł: ')
         existed_books = self.database.get_books_by_titles(title)[title]
         data = [row[1:3] for row in existed_books]
@@ -154,10 +172,10 @@ class Application:
             1: self._show_users,
             2: self._show_books,
             3: self._show_hirings,
-            4: self._add_book,
-            5: self._add_user,
+            4: self._add_user,
+            5: self._add_book,
             6: self._add_hiring,
-            0: self.quit_app
+            0: self.quit_app,
         }
 
         system('clear')
@@ -186,10 +204,9 @@ class Application:
             break
 
         OPTIONS[choice]()
-        
 
     def quit_app(self):
         system('clear')
         print('Do zobaczenia :)')
-        sleep(2)
+        sleep(1)
         system('clear')
