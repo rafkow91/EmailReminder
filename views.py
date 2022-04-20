@@ -4,9 +4,8 @@ from sqlite3 import connect
 from tabulate import tabulate
 from time import sleep
 
-from controllers import Database
+from controllers import Database, EmailSender
 from models import User, Book, Hiring
-
 
 class Application:
     def __init__(self, database_name: str = 'database.db') -> None:
@@ -167,6 +166,14 @@ class Application:
         )
         self.run()
 
+    def _send_reminder_emails(self):
+        sender = EmailSender()
+
+
+        system('clear')
+        print('Dodaj nowe wypożyczenie\n\n\tWypożyczający:')
+
+
     def run(self):
         OPTIONS = {
             1: self._show_users,
@@ -175,6 +182,7 @@ class Application:
             4: self._add_user,
             5: self._add_book,
             6: self._add_hiring,
+            7: self._send_reminder_emails,
             0: self.quit_app,
         }
 
@@ -189,6 +197,8 @@ class Application:
     4 - dodaj wypożyczającego
     5 - dodaj książkę
     6 - dodaj wypożyczenie
+
+    7 - wyślij maile z przypomnieniem o zwrocie przetrzymanych książek
     
     0 - wyjście
     
@@ -196,7 +206,7 @@ class Application:
         while True:
             try:
                 choice = int(input('Wybierz co chcesz zrobić: '))
-                if choice not in range(len(OPTIONS)):
+                if choice not in OPTIONS.keys():
                     raise ValueError
             except ValueError:
                 print('\t!!! Wybierz odpowiednią liczbę !!!')
