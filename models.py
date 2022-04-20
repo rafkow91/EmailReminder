@@ -1,4 +1,3 @@
-from collections import namedtuple
 from datetime import datetime
 
 
@@ -6,6 +5,9 @@ class User:
     def __init__(self, name: str, email: str) -> None:
         self.name = name
         self.email = email
+
+    def __repr__(self) -> str:
+        return f'{self.name} ({self.email}'
 
     def _is_valid_email(self):
         has_at = True if '@' in self.email else False
@@ -18,6 +20,9 @@ class Book:
     def __init__(self, title: str, author: str) -> None:
         self.title = title
         self.author = author
+    
+    def __repr__(self) -> str:
+        return f'{self.author}: "{self.title}"'
 
 
 class Hiring:

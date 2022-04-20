@@ -1,5 +1,8 @@
-from sqlite3 import connect
 from datetime import datetime
+from sqlite3 import connect
+from ssl import create_default_context
+from smtplib import SMTP_SSL
+from dotenv import get_key
 
 from models import Book, User, Hiring
 
@@ -22,7 +25,11 @@ class Database:
 
     def get_all_books(self) -> list:
         self.cursor.execute('SELECT title, author FROM books')
-        return self.cursor.fetchall()
+        data = self.cursor.fetchall()
+        result = []
+        for row in data:
+            result.append(Book(row[0], row[1]))
+        return result
 
     def get_books_by_id(self, *books_ids) -> dict:
         result = {}
@@ -30,16 +37,26 @@ class Database:
             self.cursor.execute('''
                 SELECT title, author FROM books WHERE id=?
             ''', (arg,))
-            result[arg] = self.cursor.fetchone()
+            data = self.cursor.fetchone()
+            result[arg] = Book(data[0], data[1])
         return result
 
     def get_books_by_author(self, *authors) -> dict:
         result = {}
+        
         for author in authors:
             self.cursor.execute('''
                 SELECT title, author FROM books WHERE author LIKE ?
             ''', (author,))
-            result[author] = self.cursor.fetchall()
+            
+            data = self.cursor.fetchall()
+            book_list = []
+            
+            for row in data:
+                book_list.append(Book(row[0], row[1]))
+            
+            result[author] = book_list
+
         return result
 
     def get_books_by_titles(self, *titles) -> dict:
@@ -100,7 +117,7 @@ class Database:
 
     def add_hiring(self, hiring: Hiring) -> None:
         existing_hirings = self._get_all_hirings_id()
-        
+
         user_id = self._get_user_id(hiring.user)
         book_id = self._get_book_id(hiring.book)
 
@@ -127,7 +144,7 @@ class Database:
             book = self.get_books_by_id(row[0])
             user = self.get_users_by_id(row[1])
             returned_to = row[2]
-            to_add = (book[row[0]][0], book[row[0]][1], user[row[1]][0], returned_to)
+            to_add = (book[row[0]][0], book[row[0]][1], user[row[1]][0], returned_to[0:11])
             result.append(to_add)
 
         return result
@@ -136,3 +153,39 @@ class Database:
         self.cursor.execute('SELECT book_id, user_id FROM hirings')
 
         return self.cursor.fetchall()
+
+
+class EmailSender:
+    def __init__(self, env_path: str = '.env') -> None:
+        self.env_path = env_path
+
+        self.context = create_default_context()
+
+        self.sender_name = get_key(self.env_path, 'sender_name')
+        self.email = get_key(self.env_path, 'email')
+        self.password = get_key(self.env_path, 'password')
+
+        self.smtp_server = get_key(self.env_path, 'smtp_server')
+        self.smtp_port = get_key(self.env_path, 'smtp_port')
+
+    def _send_email(self, reciver: str, message: bytes):
+        with SMTP_SSL(self.smtp_server, self.smtp_port, context=self.context) as server:
+            server.login(self.email, self.password)
+            server.sendmail(from_addr=self.email, to_addrs=reciver, msg=message)
+
+    def send_reminder_email(self, hiring: Hiring):
+        message = bytes(f'''
+        From: {self.sender_name} <{self.email}>
+        To: {hiring.user.name} <{hiring.user.email}>
+        Subject: Czas zwrócić moją książkę
+
+        Hej {hiring.user.name}!
+        Może Ci umkneło, ale {hiring.returned_to.strftime('%d.%m.%Y')} powinieneś zwrócić moją książkę {hiring.book.title} (autorstwa {hiring.book.author})
+        
+        Będę wdzięczny za zwrot.
+
+        Pozdrawiam,
+        Rafał
+        ''', encoding='utf8')
+
+        self._send_email(hiring.user.email, message)
