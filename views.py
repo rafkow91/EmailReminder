@@ -1,14 +1,18 @@
+""" definition of all views used in app """
 from datetime import datetime
 from os import system, path, listdir
 from sqlite3 import connect
-from tabulate import tabulate
 from time import sleep
+from tabulate import tabulate
 
 from controllers import Database, EmailSender
 from models import User, Book, Hiring
 
+
 class Application:
-    def __init__(self, database_name: str = 'database.db') -> None:
+    """ main class of application """
+
+    def __init__(self, database_name: str = 'database.db'):
         self.database_name = database_name
 
         if not path.exists(self.database_name):
@@ -18,10 +22,7 @@ class Application:
 
         self.database = Database(self.database_name)
 
-    """ Procedures to create confirm database """
-
     def _create_empty_database(self):
-        """ Create empty db file """
         open(self.database_name, mode='w').close()
 
     def _read_sql_scripts_from_database_dir(self):
@@ -44,18 +45,28 @@ class Application:
     def _show_users(self):
         system('clear')
         print('Wykaz użytkowników')
-        data = self.database.get_all_users()
+        data = [(user.name, user.email) for user in self.database.get_all_users()]
         headers = ('Imię', 'Adres email')
-        print(tabulate(data, headers=headers, tablefmt='fancy_grid', showindex=range(1, len(data)+1)))
+
+        print(tabulate(
+            data, headers=headers,
+            tablefmt='fancy_grid',
+            showindex=range(1, len(data)+1)))
+
         input('\n\n--- Naciśnij dowolny klawisz aby kontynuować ---\n\n')
         self.run()
 
     def _show_books(self):
         system('clear')
         print('Wykaz książek')
-        data = self.database.get_all_books()
+        data = [(book.title, book.author) for book in self.database.get_all_books()]
         headers = ('Tytuł', 'Autor')
-        print(tabulate(data, headers=headers, tablefmt='fancy_grid', showindex=range(1, len(data)+1)))
+
+        print(tabulate(
+            data, headers=headers,
+            tablefmt='fancy_grid',
+            showindex=range(1, len(data)+1)))
+
         input('\n\n--- Naciśnij dowolny klawisz aby kontynuować ---\n\n')
         self.run()
 
@@ -63,9 +74,17 @@ class Application:
         system('clear')
         print('Wykaz wypożyczeń')
 
-        data = self.database.get_all_hirings()
+        data = [(hiring.book.title,
+                hiring.book.author,
+                hiring.user.name,
+                hiring.returned_to.strftime('%Y-%m-%d'))
+                for hiring in self.database.get_all_hirings()]
         headers = ('Tytuł', 'Autor', 'Wypożyczający', 'Data zwrotu')
-        print(tabulate(data, headers=headers, tablefmt='fancy_grid', showindex=range(1, len(data)+1)))
+
+        print(tabulate(
+            data, headers=headers,
+            tablefmt='fancy_grid',
+            showindex=range(1, len(data)+1)))
 
         input('\n\n--- Naciśnij dowolny klawisz aby kontynuować ---\n\n')
         self.run()
@@ -102,16 +121,25 @@ class Application:
 
         username = input('Imię: ')
         existed_users = self.database.get_users_by_name(username)[username]
+
         if len(existed_users) > 1:
-            data = [row[1:3] for row in existed_users]
-            print(f'Znaleziono {len(existed_books)} książek o tytule zawierającym frazę "{title}"')
-            headers = ('Tytuł', 'Autor')
-            print(tabulate(data, headers=headers, tablefmt='fancy_grid', showindex=range(1, len(data)+1)))
+            data = [(user.name, user.email) for user in existed_users]
+            print(f'Znaleziono {len(existed_users)} ' +
+                  f'użytkowników o nazwie zawierającej frazę "{username}"')
+            headers = ('Imię', 'Adres email')
+
+            print(tabulate(
+                data, headers=headers,
+                tablefmt='fancy_grid',
+                showindex=range(1, len(data)+1)))
+
             print('\n\n')
             while True:
                 try:
-                    choice = int(input('Wybierz, którą wypożyczającego: '))
-                    if choice not in range(len(existed_users)):
+                    choice = int(input('Wybierz wypożyczającego (naciśnij 0 aby dodać nowego): '))
+                    if choice == 0:
+                        self._add_user()
+                    elif choice not in range(len(existed_users)):
                         raise ValueError
                 except ValueError:
                     print('!!! Wybrano złą wartość !!!')
@@ -120,7 +148,7 @@ class Application:
         else:
             choice = 1
         try:
-            email = existed_users[choice - 1][2]
+            email = existed_users[choice - 1].email
         except IndexError:
             email = input('Adres email: ')
             self.database.add_user(User(username, email))
@@ -129,24 +157,32 @@ class Application:
 
         print('\tKsiążka:')
         title = input('Tytuł: ')
-        existed_books = self.database.get_books_by_titles(title)[title]
-        data = [row[1:3] for row in existed_books]
+        existed_books = self.database.get_books_by_titles(title)
+        existed_books = existed_books[title]
+        data = [(book.title, book.author) for book in existed_books]
         if len(data) > 1:
             print(f'Znaleziono {len(existed_books)} książek o tytule zawierającym frazę "{title}"')
             headers = ('Tytuł', 'Autor')
-            print(tabulate(data, headers=headers, tablefmt='fancy_grid', showindex=range(1, len(data)+1)))
+
+            print(tabulate(
+                data, headers=headers,
+                tablefmt='fancy_grid',
+                showindex=range(1, len(data)+1)))
+
             print('\n\n')
             while True:
                 try:
-                    choice = int(input('Wybierz, którą książkę chcesz wypożyczyć: '))
-                    if choice not in range(len(existed_books)):
+                    choice = int(input('Wybierz, którą książkę chcesz wypożyczyć (aby dodać nową wybierz 0): '))
+                    if choice == 0:
+                        self._add_book()
+                    elif choice not in range(len(existed_books)):
                         raise ValueError
                 except ValueError:
                     print('!!! Wybrano złą wartość !!!')
                     continue
                 break
-            title = existed_books[choice - 1][1]
-            author = existed_books[choice - 1][2]
+            title = existed_books[choice - 1].title
+            author = existed_books[choice - 1].author
 
         else:
             print('Nie znaleziono książki o podobnym tytule. Dodaj taką książkę:')
@@ -169,10 +205,18 @@ class Application:
     def _send_reminder_emails(self):
         sender = EmailSender()
 
-
         system('clear')
-        print('Dodaj nowe wypożyczenie\n\n\tWypożyczający:')
+        print('Wysyłanie maili z przypomnieniem\n')
+        for hiring in self.database.get_all_hirings():
+            if hiring.is_out_of_date():
+                if hiring.user.is_valid_email():
+                    sender.send_reminder_email(hiring)
+                    print(f'Wysłano mail do: {hiring.user}')
+                else:
+                    print(f'Nie udało się wysłać maila do {hiring.user} - niepoprawny adres email!')
 
+        input('\n\n--- Naciśnij dowolny klawisz aby kontynuować ---\n\n')
+        self.run()
 
     def run(self):
         OPTIONS = {
@@ -206,7 +250,7 @@ class Application:
         while True:
             try:
                 choice = int(input('Wybierz co chcesz zrobić: '))
-                if choice not in OPTIONS.keys():
+                if choice not in OPTIONS:
                     raise ValueError
             except ValueError:
                 print('\t!!! Wybierz odpowiednią liczbę !!!')
@@ -215,7 +259,9 @@ class Application:
 
         OPTIONS[choice]()
 
-    def quit_app(self):
+    @staticmethod
+    def quit_app():
+        """ Close app """
         system('clear')
         print('Do zobaczenia :)')
         sleep(1)
